@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
 const QUEUE = process.env.QUEUE || 'emails';
 const QUEUE_IMAGES = process.env.QUEUE_IMAGES || 'images';
+const QUEUE_INSCRIPTIONS = process.env.QUEUE_INSCRIPTIONS || 'inscriptions';
 
 const app = express();
 const server = http.createServer(app);
@@ -25,8 +26,8 @@ let consumedCount = 0;
 let ackedCount = 0;
 let inFlight = 0; // total in-flight
 let queueDepth = 0; // total queue depth observed
-const inFlightByQ = { emails: 0, images: 0 };
-const queueDepthByQ = { emails: 0, images: 0 };
+const inFlightByQ = { emails: 0, images: 0, inscriptions: 0 };
+const queueDepthByQ = { emails: 0, images: 0, inscriptions: 0 };
 let workIntensity = 0.5; // 0..1, controlled from UI
 
 async function setupRabbit() {
@@ -39,6 +40,7 @@ async function setupRabbit() {
   channel = await connection.createChannel();
   await channel.assertQueue(QUEUE, { durable: false });
   await channel.assertQueue(QUEUE_IMAGES, { durable: false });
+  await channel.assertQueue(QUEUE_INSCRIPTIONS, { durable: false });
   await channel.prefetch(10);
 
   async function consumeQueue(qname, label) {
@@ -73,6 +75,7 @@ async function setupRabbit() {
 
   await consumeQueue(QUEUE, 'emails');
   await consumeQueue(QUEUE_IMAGES, 'images');
+  await consumeQueue(QUEUE_INSCRIPTIONS, 'inscriptions');
 }
 
 async function connectWithRetry({ tries = 0 } = {}) {
@@ -100,12 +103,15 @@ app.post('/api/publish', async (req, res) => {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const msg = {
         id,
-        subject: q === 'images'
-          ? `Image Task #${(publishedCount + 1).toString().padStart(3, '0')}`
-          : `Newsletter #${(publishedCount + 1).toString().padStart(3, '0')}`,
+        subject:
+          q === 'images'
+            ? `Image Task #${(publishedCount + 1).toString().padStart(3, '0')}`
+            : q === 'inscriptions'
+              ? `Registration Request #${(publishedCount + 1).toString().padStart(3, '0')}`
+              : `Newsletter #${(publishedCount + 1).toString().padStart(3, '0')}`,
         createdAt: Date.now()
       };
-      const qname = q === 'images' ? QUEUE_IMAGES : QUEUE;
+      const qname = q === 'images' ? QUEUE_IMAGES : q === 'inscriptions' ? QUEUE_INSCRIPTIONS : QUEUE;
       const ok = channel.sendToQueue(qname, Buffer.from(JSON.stringify(msg)), { persistent: false });
       if (ok) {
         publishedCount++;
@@ -148,9 +154,11 @@ server.listen(PORT, async () => {
     try {
       const q1 = await channel.checkQueue(QUEUE);
       const q2 = await channel.checkQueue(QUEUE_IMAGES);
+      const q3 = await channel.checkQueue(QUEUE_INSCRIPTIONS);
       queueDepthByQ.emails = q1.messageCount || 0;
       queueDepthByQ.images = q2.messageCount || 0;
-      queueDepth = (queueDepthByQ.emails || 0) + (queueDepthByQ.images || 0);
+      queueDepthByQ.inscriptions = q3.messageCount || 0;
+      queueDepth = (queueDepthByQ.emails || 0) + (queueDepthByQ.images || 0) + (queueDepthByQ.inscriptions || 0);
     } catch {}
   }, 1500);
 
