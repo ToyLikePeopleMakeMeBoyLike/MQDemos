@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RabbitMQ Email Visualizer</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>RabbitMQ Email Visualizer</h1>
+    <div class="controls">
+      <input id="count" type="number" value="50" min="1" />
+      <button id="sendBatch">Send Batch</button>
+      <button id="sendSmall">Send 10</button>
+      <a class="link" href="http://localhost:15672" target="_blank">Open RabbitMQ UI</a>
+    </div>
+    <div class="stats">
+      <span>Published: <strong id="published">0</strong></span>
+      <span>Consuming: <strong id="consuming">0</strong></span>
+      <span>Acked: <strong id="acked">0</strong></span>
+    </div>
+  </header>
+  <section class="about">
+    <h3>Why queues matter</h3>
+    <ul>
+      <li><strong>Decoupling:</strong> Producers (e.g., your app) don’t wait on consumers; they drop work into a queue and move on.</li>
+      <li><strong>Buffering:</strong> Spikes get smoothed out. If you need to send 10k emails, a queue absorbs the surge.</li>
+      <li><strong>Reliability:</strong> If a worker dies, messages remain in the queue until another worker handles them.</li>
+      <li><strong>Scalability:</strong> Add more consumers to increase throughput without changing producers.</li>
+      <li><strong>Back-pressure:</strong> Consumers pull at their own pace, preventing overloads.</li>
+    </ul>
+    <h3>What this demo shows</h3>
+    <ul>
+      <li><strong>Producer:</strong> When you click “Send”, envelopes are <em>published</em> to the queue.</li>
+      <li><strong>Queue:</strong> Envelopes briefly sit here, representing RabbitMQ storing messages.</li>
+      <li><strong>Consumers:</strong> Workers <em>consume</em> messages, simulate processing, and <em>ack</em> them.</li>
+      <li><strong>Counters:</strong> Live totals of Published, currently Consuming, and Acked.</li>
+    </ul>
+    <p>
+      This mirrors real-world email/newsletter pipelines: the web app enqueues email jobs, background workers send them, and the queue provides resilience and smooth throughput.
+    </p>
+  </section>
+  <section class="telemetry">
+    <div class="cpu-panel">
+      <div class="cpu-header">
+        <h3>Server CPU (simulated)</h3>
+        <span id="cpu-label">0%</span>
+      </div>
+      <div class="cpu-bar">
+        <div class="cpu-fill" id="cpu-fill" style="width:0%"></div>
+      </div>
+      <div class="intensity">
+        <label for="intensity">Work intensity</label>
+        <input id="intensity" type="range" min="0" max="1" step="0.01" value="0.5" />
+        <span id="intensity-val">0.50</span>
+      </div>
+      <div class="queue-meta">
+        <span>In-flight: <strong id="inflight">0</strong></span>
+        <span>Queue depth: <strong id="qdepth">0</strong></span>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <div class="lane producer">
+      <h2>Producer</h2>
+      <div class="stage" id="stage-producer"></div>
+    </div>
+    <div class="lane queue">
+      <h2>Queue</h2>
+      <div class="stage" id="stage-queue"></div>
+    </div>
+    <div class="lane consumers">
+      <h2>Consumers</h2>
+      <div class="stage" id="stage-consumers"></div>
+    </div>
+  </main>
+
+  <footer>
+    <small>Demo: envelopes move Producer → Queue → Consumers as messages flow.</small>
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
