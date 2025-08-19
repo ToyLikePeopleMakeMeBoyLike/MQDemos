@@ -1,8 +1,18 @@
 const socket = io();
 
-const stageProducer = document.getElementById('stage-producer');
-const stageQueue = document.getElementById('stage-queue');
-const stageConsumers = document.getElementById('stage-consumers');
+// stages per queue
+const stages = {
+  emails: {
+    producer: document.getElementById('emails-stage-producer'),
+    queue: document.getElementById('emails-stage-queue'),
+    consumers: document.getElementById('emails-stage-consumers')
+  },
+  images: {
+    producer: document.getElementById('images-stage-producer'),
+    queue: document.getElementById('images-stage-queue'),
+    consumers: document.getElementById('images-stage-consumers')
+  }
+};
 
 const publishedEl = document.getElementById('published');
 const consumingEl = document.getElementById('consuming');
@@ -13,20 +23,32 @@ const inflightEl = document.getElementById('inflight');
 const qdepthEl = document.getElementById('qdepth');
 const intensityRange = document.getElementById('intensity');
 const intensityVal = document.getElementById('intensity-val');
+const activeQueueLabel = document.getElementById('active-queue-label');
+const tabEmailsBtn = document.getElementById('tab-btn-emails');
+const tabImagesBtn = document.getElementById('tab-btn-images');
+const tabEmails = document.getElementById('tab-emails');
+const tabImages = document.getElementById('tab-images');
 
-let counts = { published: 0, consuming: 0, acked: 0 };
+let activeQueue = 'emails';
+const countsByQueue = {
+  emails: { published: 0, consuming: 0, acked: 0 },
+  images: { published: 0, consuming: 0, acked: 0 }
+};
 
 function updateStats() {
-  publishedEl.textContent = counts.published;
-  consumingEl.textContent = counts.consuming;
-  ackedEl.textContent = counts.acked;
+  const c = countsByQueue[activeQueue];
+  publishedEl.textContent = c.published;
+  consumingEl.textContent = c.consuming;
+  ackedEl.textContent = c.acked;
 }
 
-function createEnvelope(id, label) {
+function createEnvelope(id, queue) {
   const el = document.createElement('div');
   el.className = 'envelope';
   el.dataset.id = id;
-  el.innerHTML = `<span>✉️</span>`;
+  el.dataset.queue = queue;
+  const icon = queue === 'images' ? '🖼️' : '✉️';
+  el.innerHTML = `<span>${icon}</span>`;
   positionRandom(el);
   return el;
 }
@@ -45,32 +67,35 @@ function moveToStage(el, stage) {
   requestAnimationFrame(() => positionRandom(el));
 }
 
-function findEnvelope(id) {
-  return document.querySelector(`.envelope[data-id="${id}"]`);
+function findEnvelope(id, queue) {
+  return document.querySelector(`.envelope[data-id="${id}"][data-queue="${queue}"]`);
 }
 
 socket.on('hello', () => {});
 
-socket.on('published', ({ id, subject }) => {
+socket.on('published', ({ queue = 'emails', id }) => {
+  const counts = countsByQueue[queue];
   counts.published++;
-  updateStats();
-  const env = createEnvelope(id, subject);
-  stageProducer.appendChild(env);
-  setTimeout(() => moveToStage(env, stageQueue), 200 + Math.random() * 400);
+  if (queue === activeQueue) updateStats();
+  const env = createEnvelope(id, queue);
+  stages[queue].producer.appendChild(env);
+  setTimeout(() => moveToStage(env, stages[queue].queue), 200 + Math.random() * 400);
 });
 
-socket.on('consuming', ({ id }) => {
+socket.on('consuming', ({ queue = 'emails', id }) => {
+  const counts = countsByQueue[queue];
   counts.consuming++;
-  updateStats();
-  const env = findEnvelope(id);
-  if (env) moveToStage(env, stageConsumers);
+  if (queue === activeQueue) updateStats();
+  const env = findEnvelope(id, queue);
+  if (env) moveToStage(env, stages[queue].consumers);
 });
 
-socket.on('acked', ({ id }) => {
+socket.on('acked', ({ queue = 'emails', id }) => {
+  const counts = countsByQueue[queue];
   counts.acked++;
   counts.consuming = Math.max(0, counts.consuming - 1);
-  updateStats();
-  const env = findEnvelope(id);
+  if (queue === activeQueue) updateStats();
+  const env = findEnvelope(id, queue);
   if (env) env.remove();
 });
 
@@ -105,6 +130,28 @@ if (intensityRange) {
   });
 }
 
+// tab switching
+function setActiveQueue(q) {
+  activeQueue = q;
+  if (activeQueueLabel) activeQueueLabel.textContent = q === 'images' ? 'Images' : 'Emails';
+  // toggle content
+  if (q === 'emails') {
+    tabEmails?.classList.remove('hidden');
+    tabImages?.classList.add('hidden');
+    tabEmailsBtn?.classList.add('active');
+    tabImagesBtn?.classList.remove('active');
+  } else {
+    tabImages?.classList.remove('hidden');
+    tabEmails?.classList.add('hidden');
+    tabImagesBtn?.classList.add('active');
+    tabEmailsBtn?.classList.remove('active');
+  }
+  updateStats();
+}
+
+tabEmailsBtn?.addEventListener('click', () => setActiveQueue('emails'));
+tabImagesBtn?.addEventListener('click', () => setActiveQueue('images'));
+
 // controls
 const sendBatchBtn = document.getElementById('sendBatch');
 const sendSmallBtn = document.getElementById('sendSmall');
@@ -113,7 +160,7 @@ const countInput = document.getElementById('count');
 async function publish(count) {
   const res = await fetch('/api/publish', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ count })
+    body: JSON.stringify({ count, queue: activeQueue })
   });
   const data = await res.json();
   if (!data.ok) alert('Publish failed: ' + data.error);
@@ -121,3 +168,6 @@ async function publish(count) {
 
 sendBatchBtn.addEventListener('click', () => publish(parseInt(countInput.value || '1', 10)));
 sendSmallBtn.addEventListener('click', () => publish(10));
+
+// initialize
+setActiveQueue('emails');

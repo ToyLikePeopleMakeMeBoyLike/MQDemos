@@ -7,13 +7,19 @@ h1 { margin: 0; font-size: 20px; }
 .controls button { background:#22c55e; color:#052e16; border:none; padding:8px 12px; border-radius:8px; font-weight:600; cursor:pointer; }
 .controls button:hover { filter: brightness(0.95); }
 .controls .link { color:#93c5fd; text-decoration:none; margin-left:auto; }
+.controls .active-queue { margin-left: 8px; color:#94a3b8; font-size: 12px; }
 .stats { display:flex; gap:20px; font-size: 14px; }
- 
+
 .about { padding: 12px 20px; border-bottom: 1px solid #1f2937; background:#0b1222; }
 .about h3 { margin: 10px 0 6px; font-size: 16px; color:#cbd5e1; }
 .about ul { margin: 6px 0 10px 18px; color:#cbd5e1; }
 .about li { margin: 4px 0; }
 .about p { margin: 8px 0 0; color:#94a3b8; }
+
+.tabs { display:flex; gap:8px; padding: 0 20px; }
+.tab { background:#0b1222; color:#cbd5e1; border:1px solid #1f2937; padding:6px 10px; border-radius: 8px; cursor:pointer; }
+.tab.active { background:#1d283a; color:#93c5fd; border-color:#334155; }
+.hidden { display:none !important; }
 
 main { display:flex; gap: 16px; padding: 16px 20px; }
 .lane { flex: 1; background: #0b1222; border: 1px solid #1f2937; border-radius: 12px; padding: 12px; }
@@ -26,3 +32,4 @@ main { display:flex; gap: 16px; padding: 16px 20px; }
 .badge { position:absolute; top:-8px; right:-8px; background:#ef4444; color:#fff; border-radius:999px; font-size:10px; padding:2px 6px; }
 
 footer { padding: 10px 20px; border-top: 1px solid #1f2937; color:#94a3b8; font-size:12px; }
+

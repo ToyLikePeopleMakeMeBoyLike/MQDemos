@@ -3,17 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RabbitMQ Email Visualizer</title>
+  <title>RabbitMQ Visualizer</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <header>
-    <h1>RabbitMQ Email Visualizer</h1>
+    <h1>RabbitMQ Visualizer</h1>
     <div class="controls">
       <input id="count" type="number" value="50" min="1" />
       <button id="sendBatch">Send Batch</button>
       <button id="sendSmall">Send 10</button>
+      <span class="active-queue">Active: <strong id="active-queue-label">Emails</strong></span>
       <a class="link" href="http://localhost:15672" target="_blank">Open RabbitMQ UI</a>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="emails" id="tab-btn-emails">Emails</button>
+      <button class="tab" data-tab="images" id="tab-btn-images">Images</button>
     </div>
     <div class="stats">
       <span>Published: <strong id="published">0</strong></span>
@@ -62,18 +67,33 @@
     </div>
   </section>
 
-  <main>
+  <main id="tab-emails" class="tab-content">
     <div class="lane producer">
       <h2>Producer</h2>
-      <div class="stage" id="stage-producer"></div>
+      <div class="stage" id="emails-stage-producer"></div>
     </div>
     <div class="lane queue">
       <h2>Queue</h2>
-      <div class="stage" id="stage-queue"></div>
+      <div class="stage" id="emails-stage-queue"></div>
     </div>
     <div class="lane consumers">
       <h2>Consumers</h2>
-      <div class="stage" id="stage-consumers"></div>
+      <div class="stage" id="emails-stage-consumers"></div>
+    </div>
+  </main>
+
+  <main id="tab-images" class="tab-content hidden">
+    <div class="lane producer">
+      <h2>Producer</h2>
+      <div class="stage" id="images-stage-producer"></div>
+    </div>
+    <div class="lane queue">
+      <h2>Queue</h2>
+      <div class="stage" id="images-stage-queue"></div>
+    </div>
+    <div class="lane consumers">
+      <h2>Consumers</h2>
+      <div class="stage" id="images-stage-consumers"></div>
     </div>
   </main>
 
